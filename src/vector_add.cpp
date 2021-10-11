@@ -1,56 +1,19 @@
 #include <CL/cl.hpp>
-#include <chrono>  // for time measurement
-//#include <cstdio>
-//#include <cstdlib>
+#include <chrono>    // for time measurement
 #include <fstream>   // for file I/O
 #include <iostream>  // for printing
-//#include <utility>
+
+#include "opencl_playground/myocl.hpp"
 
 using namespace std::chrono;
 constexpr auto time_now = std::chrono::high_resolution_clock::now;
 
-inline void checkErr(cl_int err, const char* name) {
-  if (err != CL_SUCCESS) {
-    std::cerr << "ERROR: " << name << " (" << err << ")" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-}
-
 int main() {
-  // get all platforms (drivers)
-  std::vector<cl::Platform> all_platforms;
-  cl::Platform::get(&all_platforms);
-  checkErr(all_platforms.size() != 0 ? CL_SUCCESS : -1,
-           "No platforms found. Check OpenCL installation!");
-  cl::Platform default_platform = all_platforms[0];
-  std::cout << "Using platform: "
-            << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-
-  // get default device of the default platform
-  std::vector<cl::Device> all_devices;
-  default_platform.getDevices(CL_DEVICE_TYPE_ALL, &all_devices);
-  checkErr(all_devices.size() != 0 ? CL_SUCCESS : -1,
-           "No devices found. Check OpenCL installation!");
-  cl::Device default_device = all_devices[0];
-  std::cout << "Using device: " << default_device.getInfo<CL_DEVICE_NAME>()
-            << "\n";
+  cl::Platform default_platform = getDefaultPlatform();
+  cl::Device default_device = getDefaultDevice(default_platform);
   cl::Context context({default_device});
-
-  // read kernel code from disk, convert it to a string
-  std::ifstream f_kernel("../src/vector_add.cl");
-  checkErr(f_kernel.is_open() ? CL_SUCCESS : -1, "vector_add.cl");
-  std::string kernel_code(std::istreambuf_iterator<char>(f_kernel),
-                          (std::istreambuf_iterator<char>()));
-  cl::Program::Sources sources(
-      1, std::make_pair(kernel_code.c_str(), kernel_code.length() + 1));
-
-  cl::Program program(context, sources);
-  if (program.build({default_device}) != CL_SUCCESS) {
-    std::cout << " Error building: "
-              << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device)
-              << "\n";
-    exit(1);
-  }
+  cl::Program program =
+      makeProgramFromKernelCode("../src/vector_add.cl", context);
 
   // create buffers on the device
   cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, sizeof(int) * 10);
