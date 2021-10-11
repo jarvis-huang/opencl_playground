@@ -47,8 +47,10 @@ int main() {
   checkErr(all_devices.size() != 0 ? CL_SUCCESS : -1,
            "No devices found. Check OpenCL installation!");
   cl::Device default_device = all_devices[0];
+  auto max_work_items = default_device.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
   std::cout << "Using device: " << default_device.getInfo<CL_DEVICE_NAME>()
-            << "\n";
+            << " (" << max_work_items[0] << ", " << max_work_items[1] << ", "
+            << max_work_items[2] << ")\n";
   cl::Context context({default_device});
 
   // read kernel code from disk, convert it to a string
