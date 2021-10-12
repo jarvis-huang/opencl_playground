@@ -22,13 +22,13 @@ void matrix_mul_sequential(const std::vector<int>& A, const std::vector<int>& B,
 }
 
 int main() {
-  cl::Platform default_platform = getDefaultPlatform();
-  cl::Device default_device = getDefaultDevice(default_platform);
+  cl::Platform default_platform = util::getDefaultPlatform();
+  cl::Device default_device = util::getDefaultDevice(default_platform);
   cl::Context context({default_device});
   // create queue to which we will push commands for the device.
   cl::CommandQueue queue(context, default_device);
   cl::Program program =
-      makeProgramFromKernelCode("../src/matrix_mul.cl", context);
+      util::makeProgramFromKernelCode("../src/matrix_mul.cl", context);
   // return 0;
 
   // create buffers on the device
@@ -49,7 +49,7 @@ int main() {
   d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * size);
 
   // Timers
-  Timer timer_seq, timer_opencl;
+  util::Timer timer_seq, timer_opencl;
 
   // run the kernel
   timer_opencl.Tic();

@@ -1,5 +1,6 @@
 #include "opencl_playground/myocl.hpp"
 
+namespace util {
 cl::Platform getDefaultPlatform() {
   // get all platforms (drivers)
   std::vector<cl::Platform> all_platforms;
@@ -44,3 +45,4 @@ cl::Program makeProgramFromKernelCode(const char* filename,
   }
   return program;
 }
+}  // namespace util

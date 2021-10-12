@@ -8,6 +8,7 @@
 
 using namespace std::chrono;
 
+namespace util {
 inline void checkErr(cl_int err, const char* name) {
   if (err != CL_SUCCESS) {
     std::cerr << "ERROR: " << name << " (" << err << ")" << std::endl;
@@ -35,5 +36,6 @@ class Timer {
  private:
   std::chrono::time_point<high_resolution_clock> t0, t1;
 };
+}  // namespace util
 
 #endif  // MYOCL_H

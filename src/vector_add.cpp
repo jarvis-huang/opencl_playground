@@ -9,11 +9,11 @@ using namespace std::chrono;
 constexpr auto time_now = std::chrono::high_resolution_clock::now;
 
 int main() {
-  cl::Platform default_platform = getDefaultPlatform();
-  cl::Device default_device = getDefaultDevice(default_platform);
+  cl::Platform default_platform = util::getDefaultPlatform();
+  cl::Device default_device = util::getDefaultDevice(default_platform);
   cl::Context context({default_device});
   cl::Program program =
-      makeProgramFromKernelCode("../src/vector_add.cl", context);
+      util::makeProgramFromKernelCode("../src/vector_add.cl", context);
 
   // create buffers on the device
   cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, sizeof(int) * 10);
