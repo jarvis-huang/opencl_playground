@@ -1,15 +1,12 @@
 #include <CL/cl.hpp>
 #include <boost/format.hpp>
-#include <chrono>    // for time measurement
 #include <fstream>   // for file I/O
 #include <iostream>  // for printing
 
 #include "opencl_playground/myocl.hpp"
 
-using namespace std::chrono;
-constexpr auto time_now = std::chrono::high_resolution_clock::now;
-
-void matrix_mul_sequential(const int* A, const int* B, int* C, const int N) {
+void matrix_mul_sequential(const std::vector<int>& A, const std::vector<int>& B,
+                           std::vector<int>& C, const int N) {
   for (size_t i = 0; i < N; i++) {
     for (size_t j = 0; j < N;
          j++) {  // loop over each location of output matrix C
@@ -28,75 +25,69 @@ int main() {
   cl::Platform default_platform = getDefaultPlatform();
   cl::Device default_device = getDefaultDevice(default_platform);
   cl::Context context({default_device});
+  // create queue to which we will push commands for the device.
+  cl::CommandQueue queue(context, default_device);
   cl::Program program =
       makeProgramFromKernelCode("../src/matrix_mul.cl", context);
 
   // create buffers on the device
-  int N = 500;
-  int N2 = N * N;
-  cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, sizeof(int) * N2);
-  cl::Buffer buffer_B(context, CL_MEM_READ_WRITE, sizeof(int) * N2);
-  cl::Buffer buffer_C(context, CL_MEM_READ_WRITE, sizeof(int) * N2);
+  int ORDER = 500;
+  int size = ORDER * ORDER;
 
-  // Prepare input data
-  int* A = new int[N2];
-  int* B = new int[N2];
-  for (int i = 0; i < N2; i++) {
-    A[i] = i % 10 - 2;
-    B[i] = i % 7 - 4;
+  // Prepare host and device memory
+  std::vector<int> h_A(size);  // Host memory for Matrix A
+  std::vector<int> h_B(size);  // Host memory for Matrix B
+  std::vector<int> h_C(size);  // Host memory for Matrix C
+  for (int i = 0; i < size; i++) {
+    h_A[i] = i % 10 - 2;
+    h_B[i] = i % 7 - 3;
   }
+  cl::Buffer d_a, d_b, d_c;  // Matrices in device memory
+  d_a = cl::Buffer(context, h_A.begin(), h_A.end(), true);
+  d_b = cl::Buffer(context, h_B.begin(), h_B.end(), true);
+  d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
 
-  // create queue to which we will push commands for the device.
-  cl::CommandQueue queue(context, default_device);
-
-  // write arrays A and B to the device
-  auto t0 = time_now();
-  queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, sizeof(int) * N2, A);
-  queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, sizeof(int) * N2, B);
+  // Timers
+  Timer timer_seq, timer_opencl;
 
   // run the kernel
+  timer_opencl.Tic();
   cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, int> matrix_mul(
       program, "matrix_mul");
-  cl::EnqueueArgs eargs(queue, cl::NullRange, cl::NDRange(N), cl::NullRange);
-  auto t_start = time_now();
-  matrix_mul(eargs, buffer_A, buffer_B, buffer_C, N).wait();
-  auto t_end = time_now();
-  auto dur_opencl = duration_cast<milliseconds>(t_end - t_start).count();
+  cl::NDRange global(ORDER);
+  matrix_mul(cl::EnqueueArgs(queue, global), d_a, d_b, d_c, ORDER).wait();
+  timer_opencl.Toc();
 
   // read result C from the device to array C
-  int* C = new int[N2];
-  queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, sizeof(int) * N2, C);
-  auto t1 = time_now();
-  auto dur_opencl_mem = duration_cast<milliseconds>(t1 - t0).count();
+  cl::copy(queue, d_c, h_C.begin(), h_C.end());
 
-  t_start = time_now();
-  int* C_seq = new int[N2];
-  matrix_mul_sequential(A, B, C_seq, N);
-  t_end = time_now();
-  auto dur_seq = duration_cast<milliseconds>(t_end - t_start).count();
+  timer_seq.Tic();
+  int* C_seq = new int[size];
+  std::vector<int> h_C_seq(size);
+  matrix_mul_sequential(h_A, h_B, h_C_seq, ORDER);
+  timer_seq.Toc();
 
-  std::cout << " result (OpenCL): ";
-  for (int i = 0; i < 10; i++) {
-    std::cout << boost::format("%d ") % C[i];
+  std::cout << "result (OpenCL): ";
+  for (int i = 0; i < 1000; i += 75) {
+    std::cout << boost::format("%d ") % h_C[i];
   }
   std::cout << "\n";
-  std::cout << " result (sequential): ";
-  for (int i = 0; i < 10; i++) {
-    std::cout << boost::format("%d ") % C_seq[i];
+  std::cout << "   result (seq): ";
+  for (int i = 0; i < 1000; i += 75) {
+    std::cout << boost::format("%d ") % h_C_seq[i];
   }
   std::cout << "\n";
 
   // Time profiling
-  std::cout << boost::format("Time opencl: %d ms (with mem: %d ms)\n") %
-                   dur_opencl % dur_opencl_mem;
-  std::cout << boost::format("Time seq: %d ms \n") % dur_seq;
+  std::cout << boost::format("Time (ms): %d (opencl) %d (seq)\n") %
+                   timer_opencl.ElapsedMs() % timer_seq.ElapsedMs();
 
-  float dSeconds_cl = float(dur_opencl) / 1000.0;
-  float dSeconds_seq = float(dur_seq) / 1000.0;
-  float dNumOps = 2.0 * (double)(N * N * N);
+  float dSeconds_cl = timer_opencl.ElapsedSec();
+  float dSeconds_seq = timer_seq.ElapsedSec();
+  float dNumOps = 2.0 * (double)(ORDER * ORDER * ORDER);
   float gflops_cl = 1.0e-9 * dNumOps / dSeconds_cl;
   float gflops_seq = 1.0e-9 * dNumOps / dSeconds_seq;
-  std::cout << boost::format("GFLOPS: %.2f (opencl) %.2f (seq)\n") % gflops_cl %
+  std::cout << boost::format("GFLOPS: %.1f (opencl) %.1f (seq)\n") % gflops_cl %
                    gflops_seq;
   return 0;
 }

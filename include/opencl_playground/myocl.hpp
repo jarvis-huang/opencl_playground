@@ -2,8 +2,11 @@
 #define MYOCL_H
 
 #include <CL/cl.hpp>
+#include <chrono>    // for time measurement
 #include <fstream>   // for file I/O
 #include <iostream>  // for printing
+
+using namespace std::chrono;
 
 inline void checkErr(cl_int err, const char* name) {
   if (err != CL_SUCCESS) {
@@ -16,5 +19,21 @@ cl::Platform getDefaultPlatform();
 cl::Device getDefaultDevice(cl::Platform default_platform);
 cl::Program makeProgramFromKernelCode(const char* filename,
                                       cl::Context context);
+
+class Timer {
+ public:
+  Timer() {}
+  void Tic() { t0 = high_resolution_clock::now(); }
+  void Toc() { t1 = high_resolution_clock::now(); }
+  double ElapsedSec() {
+    int t_ms = duration_cast<milliseconds>(t1 - t0).count();
+    return double(t_ms) / 1000.0;
+  }
+  int ElapsedMs() { return duration_cast<milliseconds>(t1 - t0).count(); }
+  int ElapsedUs() { return duration_cast<microseconds>(t1 - t0).count(); }
+
+ private:
+  std::chrono::time_point<high_resolution_clock> t0, t1;
+};
 
 #endif  // MYOCL_H
