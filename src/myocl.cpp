@@ -33,13 +33,13 @@ cl::Program makeProgramFromKernelCode(const char* filename,
   checkErr(f_kernel.is_open() ? CL_SUCCESS : -1, filename);
   std::string kernel_code(std::istreambuf_iterator<char>(f_kernel),
                           (std::istreambuf_iterator<char>()));
-  cl::Program::Sources sources(
-      1, std::make_pair(kernel_code.c_str(), kernel_code.length() + 1));
-  cl::Program program(context, sources);
-  std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-  if (program.build(devices) != CL_SUCCESS) {
-    std::cout << " Error building: "
-              << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]) << "\n";
+
+  cl_int err;
+  cl::Program program(context, kernel_code, true,
+                      &err);  // builds (compiles and links) the kernel code
+
+  if (err != CL_SUCCESS) {
+    std::cout << " Error building: " << filename << "\n";
     exit(1);
   }
   return program;

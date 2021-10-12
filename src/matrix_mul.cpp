@@ -29,6 +29,7 @@ int main() {
   cl::CommandQueue queue(context, default_device);
   cl::Program program =
       makeProgramFromKernelCode("../src/matrix_mul.cl", context);
+  // return 0;
 
   // create buffers on the device
   int ORDER = 500;
@@ -39,13 +40,13 @@ int main() {
   std::vector<int> h_B(size);  // Host memory for Matrix B
   std::vector<int> h_C(size);  // Host memory for Matrix C
   for (int i = 0; i < size; i++) {
-    h_A[i] = i % 10 - 2;
-    h_B[i] = i % 7 - 3;
+    h_A[i] = i % 19 - 8;
+    h_B[i] = i % 37 - 5;
   }
   cl::Buffer d_a, d_b, d_c;  // Matrices in device memory
   d_a = cl::Buffer(context, h_A.begin(), h_A.end(), true);
   d_b = cl::Buffer(context, h_B.begin(), h_B.end(), true);
-  d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
+  d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * size);
 
   // Timers
   Timer timer_seq, timer_opencl;
@@ -68,12 +69,12 @@ int main() {
   timer_seq.Toc();
 
   std::cout << "result (OpenCL): ";
-  for (int i = 0; i < 1000; i += 75) {
+  for (int i = 0; i < 80; i += 8) {
     std::cout << boost::format("%d ") % h_C[i];
   }
   std::cout << "\n";
   std::cout << "   result (seq): ";
-  for (int i = 0; i < 1000; i += 75) {
+  for (int i = 0; i < 80; i += 8) {
     std::cout << boost::format("%d ") % h_C_seq[i];
   }
   std::cout << "\n";
