@@ -30,8 +30,7 @@ int main() {
   // Timers
   util::Timer timer_seq, timer_ocl;
 
-  cl::Platform default_platform = util::getDefaultPlatform();
-  cl::Device default_device = util::getDefaultDevice(default_platform);
+  cl::Device default_device = util::getDefaultDevice();
   cl::Context context({default_device});
   // create queue to which we will push commands for the device.
   cl::CommandQueue queue(context, default_device);
@@ -40,27 +39,27 @@ int main() {
 
   // create buffers on the device
   int NREPEAT = 100;
-  int SIZE = 800000;
-  int global_size = 10000;
-  int local_size = 100;
+  int SIZE = 819200;
+  int global_size = 8192;
+  int local_size = 512;
   int n_groups = global_size / local_size;
-  float step = float(1.0) / SIZE;
+  double step = double(1.0) / SIZE;
   int ninput_per_group = int(SIZE / n_groups);
 
   // Prepare host and device memory
-  std::vector<float> h_A(n_groups);  // Host memory for Matrix A
-  cl::LocalSpaceArg localmem = cl::Local(sizeof(float) * local_size);
+  std::vector<double> h_A(n_groups);  // Host memory for Matrix A
+  cl::LocalSpaceArg localmem = cl::Local(sizeof(double) * local_size);
 
   // run the kernel
   timer_ocl.Tic();
-  cl::make_kernel<cl::Buffer, cl::LocalSpaceArg, float, int> compute_pi(
+  cl::make_kernel<cl::Buffer, cl::LocalSpaceArg, double, int> compute_pi(
       program, "compute_pi");
   cl::NDRange global(global_size);
   cl::NDRange local(local_size);
   double pi_opencl = 0.0;
   for (int n = 0; n < NREPEAT; n++) {
     cl::Buffer d_a =
-        cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * n_groups);
+        cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(double) * n_groups);
     compute_pi(cl::EnqueueArgs(queue, global, local), d_a, localmem, step,
                ninput_per_group)
         .wait();
@@ -87,18 +86,13 @@ int main() {
   std::cout << boost::format("seq: err=%.2e, time=%.0f us\n") %
                    (pi_seq - M_PI) % (double(timer_seq.ElapsedUs()) / NREPEAT);
 
-  // Time profiling
-  // std::cout << boost::format("Time (ms): %d (opencl) %d (seq)\n") %
-  //                  timer_ocl.ElapsedMs() % timer_seq.ElapsedMs();
-
-  float dSeconds_cl = timer_ocl.ElapsedSec();
-  float dSeconds_seq = timer_seq.ElapsedSec();
+  float dSeconds_cl = double(timer_seq.ElapsedUs()) / NREPEAT / 1000000;
+  float dSeconds_seq = double(timer_seq.ElapsedUs()) / NREPEAT / 1000000;
   float dNumOps = (double)SIZE;
   float gflops_cl = 1.0e-9 * dNumOps / dSeconds_cl;
   float gflops_seq = 1.0e-9 * dNumOps / dSeconds_seq;
-  // std::cout << boost::format("GFLOPS: %.1f (opencl) %.1f (seq)\n") %
-  // gflops_cl %
-  //                 gflops_seq;
+  std::cout << boost::format("GFLOPS: %.1f (opencl) %.1f (seq)\n") % gflops_cl %
+                   gflops_seq;
 
   return 0;
 }

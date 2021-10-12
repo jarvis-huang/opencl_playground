@@ -18,6 +18,7 @@ inline void checkErr(cl_int err, const char* name) {
 
 cl::Platform getDefaultPlatform();
 cl::Device getDefaultDevice(cl::Platform default_platform);
+cl::Device getDefaultDevice();
 cl::Program makeProgramFromKernelCode(const char* filename,
                                       cl::Context context);
 

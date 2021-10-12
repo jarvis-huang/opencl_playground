@@ -29,6 +29,12 @@ cl::Device getDefaultDevice(cl::Platform default_platform) {
   return default_device;
 }
 
+// Version to use default platform to get device
+cl::Device getDefaultDevice() {
+  cl::Platform default_platform = getDefaultPlatform();
+  return getDefaultDevice(default_platform);
+}
+
 cl::Program makeProgramFromKernelCode(const char* filename,
                                       cl::Context context) {
   // read kernel code from disk, convert it to a string

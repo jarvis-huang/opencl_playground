@@ -1,5 +1,5 @@
-void kernel compute_pi(global float* global_sum, local float* local_sum,
-                       const float step, const int ninput_per_group) {
+void kernel compute_pi(global double* global_sum, local double* local_sum,
+                       const double step, const int ninput_per_group) {
   int igrp = get_group_id(0);
   int iloc = get_local_id(0);
   int nloc = get_local_size(0);
@@ -8,8 +8,8 @@ void kernel compute_pi(global float* global_sum, local float* local_sum,
   // SIZE == total problem size
   int start = ninput_per_group * igrp;
 
-  float temp = 0.0;
-  float x = 0.0;
+  double temp = 0.0;
+  double x = 0.0;
   int k = 0;
   for (k = iloc; k < ninput_per_group; k += nloc) {
     x = (start + k + 0.5) * step;
