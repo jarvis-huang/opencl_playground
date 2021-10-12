@@ -9,8 +9,7 @@ using namespace std::chrono;
 constexpr auto time_now = std::chrono::high_resolution_clock::now;
 
 int main() {
-  cl::Platform default_platform = util::getDefaultPlatform();
-  cl::Device default_device = util::getDefaultDevice(default_platform);
+  cl::Device default_device = util::getDevice("GPU");
   cl::Context context({default_device});
   cl::Program program =
       util::makeProgramFromKernelCode("../src/vector_add.cl", context);

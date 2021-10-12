@@ -3,22 +3,36 @@
 #include "opencl_playground/err_code.h"
 
 namespace util {
-cl::Platform getDefaultPlatform() {
+std::vector<cl::Platform> getAllPlatforms() {
   // get all platforms (drivers)
   std::vector<cl::Platform> all_platforms;
   cl::Platform::get(&all_platforms);
   checkErr(all_platforms.size() != 0 ? CL_SUCCESS : -1,
            "No platforms found. Check OpenCL installation!");
-  cl::Platform default_platform = all_platforms[0];
-  std::cout << "Using platform: "
-            << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-  return default_platform;
+  return all_platforms;
 }
 
-cl::Device getDefaultDevice(cl::Platform default_platform) {
-  // get default device of the default platform
+// Version to use default platform to get device
+cl::Device getDevice(std::string device_type) {
   std::vector<cl::Device> all_devices;
-  default_platform.getDevices(CL_DEVICE_TYPE_ALL, &all_devices);
+  std::vector<cl::Platform> all_platforms = getAllPlatforms();
+  uint32_t dev_type = CL_DEVICE_TYPE_CPU;
+  if (device_type == "CPU") {
+    dev_type = CL_DEVICE_TYPE_CPU;
+  } else if (device_type == "GPU") {
+    dev_type = CL_DEVICE_TYPE_GPU;
+  } else {
+    std::cerr << "ERROR: unknown device type: " << device_type << std::endl;
+    exit(1);
+  }
+  for (auto& platform : all_platforms) {
+    platform.getDevices(dev_type, &all_devices);
+    if (all_devices.size() != 0) {
+      std::cout << "Using platform: " << platform.getInfo<CL_PLATFORM_NAME>()
+                << "\n";
+      break;
+    }
+  }
   checkErr(all_devices.size() != 0 ? CL_SUCCESS : -1,
            "No devices found. Check OpenCL installation!");
   cl::Device default_device = all_devices[0];
@@ -27,12 +41,6 @@ cl::Device getDefaultDevice(cl::Platform default_platform) {
             << " (" << max_work_items[0] << ", " << max_work_items[1] << ", "
             << max_work_items[2] << ")\n";
   return default_device;
-}
-
-// Version to use default platform to get device
-cl::Device getDefaultDevice() {
-  cl::Platform default_platform = getDefaultPlatform();
-  return getDefaultDevice(default_platform);
 }
 
 cl::Program makeProgramFromKernelCode(const char* filename,

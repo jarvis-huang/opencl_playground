@@ -30,7 +30,7 @@ int main() {
   // Timers
   util::Timer timer_seq, timer_ocl;
 
-  cl::Device default_device = util::getDefaultDevice();
+  cl::Device default_device = util::getDevice("GPU");
   cl::Context context({default_device});
   // create queue to which we will push commands for the device.
   cl::CommandQueue queue(context, default_device);
