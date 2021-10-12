@@ -1,5 +1,7 @@
 #include "opencl_playground/myocl.hpp"
 
+#include "opencl_playground/err_code.h"
+
 namespace util {
 cl::Platform getDefaultPlatform() {
   // get all platforms (drivers)
@@ -41,8 +43,13 @@ cl::Program makeProgramFromKernelCode(const char* filename,
 
   if (err != CL_SUCCESS) {
     std::cout << " Error building: " << filename << "\n";
+    // Print detailed compile error msg:
+    std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
+    std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
+    std::cerr << log << std::endl;
     exit(1);
   }
+
   return program;
 }
 }  // namespace util

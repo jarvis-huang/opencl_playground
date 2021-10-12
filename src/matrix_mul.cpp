@@ -29,7 +29,6 @@ int main() {
   cl::CommandQueue queue(context, default_device);
   cl::Program program =
       util::makeProgramFromKernelCode("../src/matrix_mul.cl", context);
-  // return 0;
 
   // create buffers on the device
   int ORDER = 500;
