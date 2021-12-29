@@ -22,7 +22,7 @@ void matrix_mul_sequential(const std::vector<int>& A, const std::vector<int>& B,
 }
 
 int main() {
-  cl::Device default_device = util::getDevice("GPU");
+  cl::Device default_device = util::getDevice("CPU");
   cl::Context context({default_device});
   // create queue to which we will push commands for the device.
   cl::CommandQueue queue(context, default_device);
@@ -30,7 +30,7 @@ int main() {
       util::makeProgramFromKernelCode("../src/matrix_mul.cl", context);
 
   // create buffers on the device
-  int ORDER = 500;
+  int ORDER = 800;
   int size = ORDER * ORDER;
 
   // Prepare host and device memory
