@@ -33,4 +33,7 @@ target_link_libraries(matrix_mul ${OpenCL_LIBRARY})
 add_executable(compute_pi src/compute_pi.cpp src/myocl.cpp)
 target_link_libraries(compute_pi ${OpenCL_LIBRARY})
 
+add_executable(triangle_area src/triangle_area.cpp src/myocl.cpp)
+target_link_libraries(triangle_area ${OpenCL_LIBRARY})
+
 #enable_testing()
