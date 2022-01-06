@@ -32,45 +32,54 @@ int main() {
       util::makeProgramFromKernelCode("../src/triangle_area.cl", context);
 
   // create buffers on the device
-  int ORDER = 2000;
-  int NREPEAT = 1000;
+  int ORDER = 12800; // WG_size=128, num_WG=100
+  int WG_size = 128*4; // prefer multiples of 128
+  int num_wg = ORDER / WG_size;
+  int NREPEAT = 500;
 
   // Timers
   util::Timer timer_seq, timer_opencl;
 
+  // Prepare input data
+  srand (0); /* initialize random seed: */
+  std::vector<float> v_left(NREPEAT), v_up(NREPEAT), v_right(NREPEAT), v_gt(NREPEAT);
+  for (int i = 0; i < NREPEAT; i++) {
+    v_left[i] = float(rand() % 1000 + 1) / 20.0;
+    v_up[i] = float(rand() % 1000 + 1) / 20.0;
+    v_right[i] = float(rand() % 1000 + 1) / 20.0;
+    v_gt[i] = (v_left[i]+v_right[i])*v_up[i]/2.0;
+  }
+
   // Prepare host and device memory
-  /* initialize random seed: */
-  srand (0);
   timer_opencl.Tic();
-  std::vector<float> res_opencl, res_seq, res_gt;
+  std::vector<float> res_opencl, res_seq;
+  std::vector<float> h_C(num_wg);  // Host memory for temporary result
+  cl::Buffer d_c;  // Device memory
+  d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * num_wg);
+  cl::LocalSpaceArg localmem = cl::Local(sizeof(float) * WG_size);
+  
+  cl::NDRange global(ORDER);
+  cl::NDRange local(WG_size);
+  cl::make_kernel<cl::Buffer, cl::LocalSpaceArg, float, float, float> triangle_area(program, "triangle_area"); // Avoid this in a loop since it consumes significant run-time!
+
   for (int n = 0; n < NREPEAT; n++) {
-    float left = float(rand() % 1000 + 1) / 20.0;
-    float up = float(rand() % 1000 + 1) / 20.0;
-    float right = float(rand() % 1000 + 1) / 20.0;
-
-    std::vector<float> h_C(ORDER);  // Host memory for temporary result
-    cl::Buffer d_c;  // Device memory
-    d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * ORDER);
-
     // run the kernel
-    cl::make_kernel<cl::Buffer, float, float, float> triangle_area(program, "triangle_area");
-    cl::NDRange global(ORDER);
-    cl::NDRange local(ORDER);
-    triangle_area(cl::EnqueueArgs(queue, global, local), d_c, left, up, right).wait();
+    triangle_area(cl::EnqueueArgs(queue, global, local), d_c, localmem, v_left[n], v_up[n], v_right[n]).wait();
 
     // read result C from the device to array C
     cl::copy(queue, d_c, h_C.begin(), h_C.end());
-    res_opencl.push_back(h_C[0]);
-    res_gt.push_back((left+right)*up/2.0);
+    float suma = 0;
+    for (auto x: h_C) suma += x;
+    res_opencl.push_back(suma);
   }
   timer_opencl.Toc();
 
   srand (0);
   timer_seq.Tic();
   for (int n = 0; n < NREPEAT; n++) {
-    float left = float(rand() % 1000 + 1) / 20.0;
-    float up = float(rand() % 1000 + 1) / 20.0;
-    float right = float(rand() % 1000 + 1) / 20.0;
+    float left = v_left[n];
+    float up = v_up[n];
+    float right = v_right[n];
     std::vector<float> h_C_seq(ORDER);
     triangle_area_sequential(h_C_seq, left, up, right);
     res_seq.push_back(h_C_seq[0]);
@@ -82,21 +91,14 @@ int main() {
   std::cout << "\n";
   std::cout << "   result (seq): ";
   std::cout << boost::format("%.3f %.3f %.3f") % res_seq[0] % res_seq[10] % res_seq[20];
-  std::cout << "\n";
+  std::cout << "\n----------------------------------------------\n";
   std::cout << "    result (GT): ";
-  std::cout << boost::format("%.3f %.3f %.3f") % res_gt[0] % res_gt[10] % res_gt[20];
+  std::cout << boost::format("%.3f %.3f %.3f") % v_gt[0] % v_gt[10] % v_gt[20];
   std::cout << "\n";
 
   // Time profiling
-  std::cout << boost::format("Time (ms): %d (opencl) %d (seq)\n") %
-                   timer_opencl.ElapsedMs() % timer_seq.ElapsedMs();
-
-  // float dSeconds_cl = timer_opencl.ElapsedSec();
-  // float dSeconds_seq = timer_seq.ElapsedSec();
-  // float dNumOps = 2.0 * (double)(ORDER * ORDER * ORDER);
-  // float gflops_cl = 1.0e-9 * dNumOps / dSeconds_cl;
-  // float gflops_seq = 1.0e-9 * dNumOps / dSeconds_seq;
-  // std::cout << boost::format("GFLOPS: %.1f (opencl) %.1f (seq)\n") % gflops_cl %
-  //                  gflops_seq;
+  std::cout << boost::format("Time per run (ms): %.3f (opencl) %.3f (seq)\n") %
+                   (timer_opencl.ElapsedMs()/float(NREPEAT)) % 
+                   (timer_seq.ElapsedMs()/float(NREPEAT));
   return 0;
 }
