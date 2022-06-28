@@ -7,6 +7,26 @@
 
 #include "opencl_playground/myocl.hpp"
 
+/*
+         * 
+        *|*
+       * | *
+      *  |  *
+     *   |   *
+    *    | up *
+   *     |     *
+  *      |      *
+ *       |       *
+*--left--|--right-*
+* 
+* y axis points up
+* we slice y axis narrowly into ORDER slices (total num of WI)
+* each WI computes the arrow of its narrow slice
+* each WG (by its first WI) sums the area of a band of slices
+* Outside of kernel, we do the last summation of all the WG sums
+* We use WG's local memory to store each WI's slice area.
+*/
+
 void triangle_area_sequential(std::vector<float>& C, const float left, const float up, const float right) {
   int N = C.size();
   for (size_t i = 0; i < N; i++) {
