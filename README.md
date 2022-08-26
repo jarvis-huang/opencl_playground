@@ -3,7 +3,10 @@ xxx
 
 ## Requeriments
 
-xxx
+```bash
+docker run -it -v /home/jhuang:/jhuang my_opencl_docker /bin/bash
+cd /jhuang/repo/opencl_ws
+```
 
 ## Building
 
@@ -13,7 +16,7 @@ Initially run the following command in a terminal:
 mkdir build
 cd build
 cmake ..
-make
+make -j2
 ```
 
 ## Running
