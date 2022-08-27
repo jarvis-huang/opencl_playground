@@ -13,12 +13,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes -Wno-deprecated-
 
 # Since Ubuntu 20.04, I wasn't able to build and run on native
 # OS, hence I had to resort to a docker image.
-#find_package(OpenCL REQUIRED)
 add_definitions(-DCL_TARGET_OPENCL_VERSION=120)
-#set(OpenCL_INCLUDE_DIRS /usr/include)
-#set(OpenCL_LIBRARY /usr/lib/x86_64-linux-gnu/beignet/libcl.so)
-set(OpenCL_INCLUDE_DIRS /opt/intel/opencl/include)
-set(OpenCL_LIBRARY /opt/intel/opencl-1.2-6.4.0.25/lib64/libOpenCL.so)
+set(OpenCL_INCLUDE_DIRS /usr/include)
+set(OpenCL_LIBRARY /opt/intel/opencl-1.2-6.4.0.37/lib64/libOpenCL.so)
 find_package(Boost REQUIRED)
 
 include_directories(

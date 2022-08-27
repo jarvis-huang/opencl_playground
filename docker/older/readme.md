@@ -1,6 +1,6 @@
 # Running
 ```bash
-docker run -it -v /home/jhuang:/jhuang my_opencl_docker /bin/bash
+docker run -it -v /home/jhuang:/home/jhuang my_opencl_docker /bin/bash
 ```
 ```bash
 docker run -it -v /home/jhuang:/jhuang cwpearson/opencl2.0-intel-cpu:latest /bin/bash
